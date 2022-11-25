@@ -1,4 +1,5 @@
 <template>
+<div>
   <!-- 树形结构展示 -->
   <!-- :expand-on-click-node="false"表示在点击节点时不会收缩展开，只有点击前面小箭头的时候才展开收缩 -->
   <!-- show-checkbox  给节点加上复选框 -->
@@ -37,6 +38,20 @@
       </span>
     </span>
   </el-tree>
+  <el-dialog title="提示" :visible.sync="dialogVisible" width="30%">
+    <!-- 对话框里的表单，可以输入内容 -->
+      <el-form :model="category">
+        <el-form-item label="分类名称">
+            <!-- el-input绑定表单里的一个属性name -->
+          <el-input v-model="category.name" autocomplete="off"></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="dialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="addCategory">确 定</el-button>
+      </span>
+    </el-dialog>
+  </div>
 </template>
 
 <script>
@@ -46,6 +61,10 @@ export default {
   directives: {},
   data() {
     return {
+      // 与表单双向绑定（里面的内容是添加数据时都需要有值的属性）
+      category: { name: "", parentCid: 0, catLevel: 0, showStatus: 1, sort: 0 },
+      // 对话框默认关闭
+      dialogVisible: false,
       menus: [],
       // 删除后指定重新展开父节点
       expandedKey: [],
@@ -61,9 +80,36 @@ export default {
     handleNodeClick(data) {
       console.log(data);
     },
-    // 添加节点
+    // 点击append，出现添加节点的对话框
     append(data) {
-      console.log("append", data);
+      console.log("append----", data);
+      // 赋默认值（乘1再加1是防止是个字符串，所以先转化为数字）
+      this.category.parentCid = data.catId;
+      this.category.catLevel = data.catLevel * 1 + 1;
+      // 打开对话框
+      this.dialogVisible = true;
+    },
+    // 通过表单 添加分类
+    // this.category是发送到后端的数据
+    addCategory() {
+      console.log("提交的三级分类数据", this.category);
+      this.$http({
+        url: this.$http.adornUrl("/product/category/save"),
+        method: "post",
+        data: this.$http.adornData(this.category, false),
+      })
+        .then(({ data }) => {
+          this.$message({
+            type: "success",
+            message: "菜单保存成功!",
+          });
+          // 关闭对话框
+          this.dialogVisible = false;
+          // 刷新出新的菜单
+          this.getMenus();
+          this.expandedKey = [this.category.parentCid];
+        })
+        .catch(() => {});
     },
     // 删除节点
     remove(node, data) {
