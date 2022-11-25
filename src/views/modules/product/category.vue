@@ -3,7 +3,15 @@
   <!-- :expand-on-click-node="false"表示在点击节点时不会收缩展开，只有点击前面小箭头的时候才展开收缩 -->
   <!-- show-checkbox  给节点加上复选框 -->
   <!-- node-key  表明节点唯一的属性 -->
-  <el-tree :data="menus" :props="defaultProps" :expand-on-click-node="false" show-checkbox node-key="catId" @node-click="handleNodeClick">
+  <el-tree
+    :data="menus"
+    :props="defaultProps"
+    :expand-on-click-node="false"
+    show-checkbox
+    node-key="catId"
+    :default-expanded-keys="expandedKey"
+    @node-click="handleNodeClick"
+  >
     <!-- node为当前节点，data为当前节点的数据 -->
     <span class="custom-tree-node" slot-scope="{ node, data }">
       <span>{{ node.label }}</span>
@@ -39,6 +47,8 @@ export default {
   data() {
     return {
       menus: [],
+      // 删除后指定重新展开父节点
+      expandedKey: [],
       // children表示哪个字段是他的子节点；label表示要显示哪个字段
       defaultProps: {
         children: "children",
@@ -53,11 +63,45 @@ export default {
     },
     // 添加节点
     append(data) {
-        console.log("append",data)
+      console.log("append", data);
     },
     // 删除节点
     remove(node, data) {
-         console.log("remove",node,data)
+      console.log("remove---", node);
+      console.log("data---", data);
+      // 把catId拼成数组
+      var ids = [data.catId];
+      // this.$confirm：弹窗，确认是否删除；若删除则调用.then()，若取消则调用.catch()（catch不能没有）
+      this.$confirm(`是否删除【${data.name}】当前菜单?`, "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          this.$http({
+            // 请求的api
+            url: this.$http.adornUrl("/product/category/delete"),
+            method: "post",
+            data: this.$http.adornData(ids, false),
+          })
+            .then(({ data }) => {
+              this.$message({
+                type: "success",
+                message: "菜单删除成功!",
+              });
+              // 刷新出新的菜单
+              this.getMenus();
+              // 删除后重新展开父节点
+              this.expandedKey = [node.parent.data.catId];
+            })
+            .catch(() => {});
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消删除",
+          });
+        });
     },
     //   从后端获取数据，放入树形结构
     getMenus() {
