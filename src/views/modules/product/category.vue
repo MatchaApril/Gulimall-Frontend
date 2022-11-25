@@ -1,6 +1,6 @@
 <template>
 <!-- 树形结构展示 -->
-    <el-tree :data="data" :props="defaultProps" @node-click="handleNodeClick"></el-tree>
+    <el-tree :data="menus" :props="defaultProps" @node-click="handleNodeClick"></el-tree>
 </template>
 
 <script>
@@ -10,10 +10,11 @@ export default {
     directives: {},
      data() {
       return {
-        data: [],
+        menus: [],
+        // children表示哪个字段是他的子节点；label表示要显示哪个字段
         defaultProps: {
           children: 'children',
-          label: 'label'
+          label: 'name'
         }
       };
     },
@@ -29,8 +30,9 @@ export default {
         this.$http({
           url: this.$http.adornUrl('/product/category/list/tree'),
           method: 'get'
-        }).then(data=>{
-            console.log("成功获取到菜单数据：",data)
+        }).then(({data})=>{
+            console.log("成功获取到菜单数据：",data.data)
+            this.menus = data.data;
         })
       }
     },
@@ -40,7 +42,5 @@ export default {
     }
 };
 </script>
-
 <style scoped>
-
 </style>
