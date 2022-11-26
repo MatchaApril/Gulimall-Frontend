@@ -26,6 +26,9 @@
         >
           Append
         </el-button>
+        <el-button type="text" size="mini" @click="() => edit(data)">
+            Edit
+          </el-button>
         <!-- 没有子节点才可以删除，所以加上if语句 -->
         <el-button
           v-if="node.childNodes.length == 0"
@@ -38,17 +41,30 @@
       </span>
     </span>
   </el-tree>
-  <el-dialog title="提示" :visible.sync="dialogVisible" width="30%">
-    <!-- 对话框里的表单，可以输入内容 -->
+  <!-- 对话框（close-on-click-modal：点对话框外，对话框不消失） -->
+  <el-dialog
+      :title="title"
+      :visible.sync="dialogVisible"
+      width="30%"
+      :close-on-click-modal="false"
+    >
       <el-form :model="category">
         <el-form-item label="分类名称">
-            <!-- el-input绑定表单里的一个属性name -->
           <el-input v-model="category.name" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="图标">
+          <el-input v-model="category.icon" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="计量单位">
+          <el-input
+            v-model="category.productUnit"
+            autocomplete="off"
+          ></el-input>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="addCategory">确 定</el-button>
+        <el-button type="primary" @click="submitData">确 定</el-button>
       </span>
     </el-dialog>
   </div>
@@ -61,10 +77,23 @@ export default {
   directives: {},
   data() {
     return {
+      // 对话框的title，是动态绑定的
+      title: "",
       // 与表单双向绑定（里面的内容是添加数据时都需要有值的属性）
-      category: { name: "", parentCid: 0, catLevel: 0, showStatus: 1, sort: 0 },
+      category: {
+        name: "",
+        parentCid: 0,
+        catLevel: 0,
+        showStatus: 1,
+        sort: 0,
+        icon: "",
+        productUnit: "",
+        catId: null,
+      },
       // 对话框默认关闭
       dialogVisible: false,
+      // 对话框打开类型，是要修改还是要添加
+      dialogType: "", //edit,add
       menus: [],
       // 删除后指定重新展开父节点
       expandedKey: [],
@@ -80,12 +109,77 @@ export default {
     handleNodeClick(data) {
       console.log(data);
     },
+
+    // 点击修改按钮
+    edit(data) {
+      console.log("要修改的数据", data);
+      // 打开对话框
+      this.dialogType = "edit";
+      this.title = "修改分类";
+      // 发送请求获取节点最新的数据,防止多人操作的时候没更新
+      this.$http({
+        url: this.$http.adornUrl(`/product/category/info/${data.catId}`),
+        method: "get",
+      }).then(({ data }) => {
+        // 请求成功
+        console.log("要回显的数据", data);
+        this.category.name = data.data.name;
+        this.category.catId = data.data.catId;
+        this.category.icon = data.data.icon;
+        this.category.productUnit = data.data.productUnit;
+        this.category.parentCid = data.data.parentCid;
+        this.dialogVisible = true;
+      });
+    },
+
+    // 修改分类菜单
+    editCategory() {
+      // 要修改的数据（这些都需要在edit()里回显）
+      var { catId, name, icon, productUnit } = this.category;
+      this.$http({
+        url: this.$http.adornUrl("/product/category/update"),
+        method: "post",
+        data: this.$http.adornData({ catId, name, icon, productUnit }, false),
+      })
+        .then(({ data }) => {
+          this.$message({
+            type: "success",
+            message: "菜单修改成功!",
+          });
+          // 关闭对话框
+          this.dialogVisible = false;
+          // 刷新出新的菜单
+          this.getMenus();
+          // 设置需要默认展开的菜单
+          this.expandedKey = [this.category.parentCid];
+        })
+        .catch(() => {});
+    },
+
+    // 判断打开的哪个对话框
+    submitData() {
+      if (this.dialogType == "add") {
+        this.addCategory();
+      }
+      if (this.dialogType == "edit") {
+        this.editCategory();
+      }
+    },
+
     // 点击append，出现添加节点的对话框
     append(data) {
       console.log("append----", data);
-      // 赋默认值（乘1再加1是防止是个字符串，所以先转化为数字）
+      this.dialogType = "add";
+      // 赋默认值，防止对话框内有原来的数据留存，不友好（乘1再加1是防止是个字符串，所以先转化为数字）
       this.category.parentCid = data.catId;
       this.category.catLevel = data.catLevel * 1 + 1;
+      this.title = "添加分类";
+      this.category.catId = null;
+      this.category.name = null;
+      this.category.icon = "";
+      this.category.productUnit = "";
+      this.category.sort = 0;
+      this.category.showStatus = 1;
       // 打开对话框
       this.dialogVisible = true;
     },
