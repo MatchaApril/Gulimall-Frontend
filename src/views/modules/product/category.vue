@@ -7,10 +7,12 @@
     >
     </el-switch>
     <el-button @click="batchSave" v-if="draggable">批量保存</el-button>
+    <el-button type="danger" @click="batchDelete">批量删除</el-button>
     <!-- 树形结构展示 -->
     <!-- :expand-on-click-node="false"表示在点击节点时不会收缩展开，只有点击前面小箭头的时候才展开收缩 -->
     <!-- show-checkbox  给节点加上复选框 -->
     <!-- node-key  表明节点唯一的属性 -->
+    <!-- ref="menuTree"这是批量删除方法里用到的 -->
     <el-tree
       :data="menus"
       :props="defaultProps"
@@ -22,6 +24,7 @@
       @node-drop="handleDrop"
       :draggable="draggable"
       :allow-drop="allowDrop"
+      ref="menuTree"
     >
       <!-- node为当前节点，data为当前节点的数据 -->
       <span class="custom-tree-node" slot-scope="{ node, data }">
@@ -123,6 +126,39 @@ export default {
   methods: {
     handleNodeClick(data) {
       console.log(data);
+    },
+
+    // 批量删除
+    batchDelete() {
+      let catIds = [];
+      let checkedNodes = this.$refs.menuTree.getCheckedNodes();
+      console.log("被选中的元素", checkedNodes);
+      for (let i = 0; i < checkedNodes.length; i++) {
+        catIds.push(checkedNodes[i].catId);
+      }
+
+      this.$confirm(`是否批量删除【${catIds}】菜单?`, "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          this.$http({
+            url: this.$http.adornUrl("/product/category/delete"),
+            method: "post",
+            data: this.$http.adornData(catIds, false),
+          })
+            .then(({ data }) => {
+              this.$message({
+                type: "success",
+                message: "菜单批量删除成功!",
+              });
+              // 刷新出新的菜单
+              this.getMenus();
+            })
+            .catch(() => {});
+        })
+        .catch(() => {});
     },
 
     //批量保存
