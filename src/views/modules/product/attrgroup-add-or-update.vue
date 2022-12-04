@@ -78,6 +78,7 @@ export default {
   
   methods: {
     dialogClose(){
+      //对话框内数据清空
       this.catelogPath = [];
     },
     getCategorys(){

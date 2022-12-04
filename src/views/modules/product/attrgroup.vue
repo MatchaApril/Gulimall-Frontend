@@ -121,9 +121,10 @@ export default {
     },
     //感知树节点被点击
     treenodeclick(data, node, component) {
+      // 点三级分类的时候才查询
       if (node.level == 3) {
         this.catId = data.catId;
-        this.getDataList(); //重新查询
+        this.getDataList(); 
       }
     },
     getAllDataList(){
@@ -170,6 +171,7 @@ export default {
     // 新增 / 修改
     addOrUpdateHandle(id) {
       this.addOrUpdateVisible = true;
+      // 调用组件addOrUpdate的init方法
       this.$nextTick(() => {
         this.$refs.addOrUpdate.init(id);
       });
